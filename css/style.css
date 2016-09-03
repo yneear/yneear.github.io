@@ -507,7 +507,7 @@ Content
 .site-content {
   min-height: calc(100% - 274px); }
 
-@media (min-width: 414px) {
+@media (min-width: 415px) {
   .content-area {
     padding-top: 70px; } }
 
