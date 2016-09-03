@@ -707,9 +707,8 @@ Footer
   position: fixed;
   top: 0;
   left: 0;
-  padding-left: 50px;
-  padding-right: 50px;
-  height: 70px;
+  padding: 0 20px;
+  height: 64px;
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
   box-sizing: border-box; }
