@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>koa-cors 踩坑以及一些乱想 | yneear&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+  <meta name="description" content="在最近开发的一个即将上线的产品中，各种相关的 API 接口都需要进行跨域处理，之前的做法是在每个接口配置 CORS，重复了很多代码，最后决定使用 koa-cors 进行统一配置。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="koa-cors 踩坑以及一些乱想">
+<meta property="og:url" content="http://yneear.github.io/2016/11/26/关于-koa-cors-踩坑的一些乱想/index.html">
+<meta property="og:site_name" content="yneear's blog">
+<meta property="og:description" content="在最近开发的一个即将上线的产品中，各种相关的 API 接口都需要进行跨域处理，之前的做法是在每个接口配置 CORS，重复了很多代码，最后决定使用 koa-cors 进行统一配置。">
+<meta property="og:image" content="https://raw.github.com/fengmk2/koa-guide/master/onion.png">
+<meta property="og:updated_time" content="2017-01-21T14:34:35.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="koa-cors 踩坑以及一些乱想">
+<meta name="twitter:description" content="在最近开发的一个即将上线的产品中，各种相关的 API 接口都需要进行跨域处理，之前的做法是在每个接口配置 CORS，重复了很多代码，最后决定使用 koa-cors 进行统一配置。">
+<meta name="twitter:image" content="https://raw.github.com/fengmk2/koa-guide/master/onion.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yneear&#39;s blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-87712841-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+</head>
+<body>
+  <div id="container">
+    <div class="mobile-nav-panel">
+	<i class="icon-reorder icon-large"></i>
+</div>
+<header id="header">
+	<h1 class="blog-title">
+		<a href="/">yneear&#39;s blog</a>
+	</h1>
+	<nav class="nav">
+		<ul>
+			<li><a href="/">Home</a></li><li><a href="/archives">Archives</a></li>
+			<li><a id="nav-search-btn" class="nav-icon" title="Search"></a></li>
+			<li><a href="/atom.xml" id="nav-rss-link" class="nav-icon" title="RSS Feed"></a></li>
+		</ul>
+	</nav>
+	<div id="search-form-wrap">
+		<form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yneear.github.io"></form>
+	</div>
+</header>
+    <div id="main">
+      <article id="post-关于-koa-cors-踩坑的一些乱想" class="post">
+	<footer class="entry-meta-header">
+		<span class="meta-elements date">
+			<a href="/2016/11/26/关于-koa-cors-踩坑的一些乱想/" class="article-date">
+  <time datetime="2016-11-26T15:02:58.000Z" itemprop="datePublished">2016-11-26</time>
+</a>
+		</span>
+		<span class="meta-elements author">yneear</span>
+		<div class="commentscount">
+			
+		</div>
+	</footer>
+	
+	<header class="entry-header">
+		
+  
+    <h1 class="article-title entry-title" itemprop="name">
+      koa-cors 踩坑以及一些乱想
+    </h1>
+  
+
+	</header>
+	<div class="entry-content">
+		
+    	<p>在最近开发的一个即将上线的产品中，各种相关的 API 接口都需要进行跨域处理，之前的做法是在每个接口配置 CORS，重复了很多代码，最后决定使用 koa-cors 进行统一配置。<br><a id="more"></a><br>大概在一年前，接触到 koa 就开始喜欢 Node.js 服务端开发（<del>并不是前端好难</del>），关于相关的东西之后继续讲，先讲讲今天踩的一个坑。<br>就在今天，一起协作的同事反映新产品相关的所有接口都返回 “Not Found”,我在检查的时候发现 node log 没有任何报错以及信息的展示。一遇到这个问题的时候还是有点懵逼的，只有 body 里显示的 “Not Found” 这一信息。一边让同事回滚代码检查，一边自己动手调试。最后在自己回想起之前给 koa-cors 配置中为 origin 返回 false 时发生这种情况，并叫同事回滚到使用 koa-cors 前的 commit，证实了问题的来源。<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> allowOriginList = [<span class="string">'http://new.api.url'</span>];</div><div class="line">app.use(cors(&#123;</div><div class="line">  <span class="attr">origin</span>: <span class="function"><span class="keyword">function</span> (<span class="params">req</span>) </span>&#123;</div><div class="line">    <span class="keyword">if</span> (~allowOriginList.indexOf(req.header.origin)) &#123;</div><div class="line">      <span class="keyword">return</span> req.header.origin;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      <span class="keyword">return</span> <span class="literal">false</span>; <span class="comment">// 将 false 去掉填上坑</span></div><div class="line">    &#125;</div><div class="line">  &#125;,</div><div class="line">  <span class="attr">credentials</span>: <span class="literal">true</span></div><div class="line">&#125;));</div></pre></td></tr></table></figure></p>
+<p>想起自己在使用 koa-cors 这个库来统一配置跨域之前，是去看过源码的。源码除了一些配置属性值的检查以及对 OPTIONS 请求做 204 处理之外，主要还是对 origin 配置的处理，就是这段 koa-cors 里的<a href="https://github.com/evert0n/koa-cors/blob/master/index.js#L55-L67" target="_blank" rel="external">代码</a>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (<span class="keyword">typeof</span> options.origin === <span class="string">'function'</span>) &#123;</div><div class="line">  origin = options.origin(<span class="keyword">this</span>.request);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>上面代码的执行使原本设置中的函数没有匹配到允许的网址时，就将 false 赋给了 origin，坑来了，就是下面这一段代码：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (origin === <span class="literal">false</span>) <span class="keyword">return</span>;</div></pre></td></tr></table></figure></p>
+<p>当 origin 为 false 时，<strong>中间件直接停止，也没有执行 yield next</strong>，使 koa 直接返回了 “Not Found”。</p>
+<p>yield next 在 koa 的中间件的代码里是很常见的，这和 koa 的运作方式有关。中间件在 koa 中会呈现出一种类似于洋葱一层层的层级关系，yield next 可以代理中间件控制权，将控制权传递给下级中间件，只有再也捕获不到下级中间件时，又按之前序列逆向执行代码，如下图(详细请移步 koa <a href="http://koajs.com/" target="_blank" rel="external">官网</a>)。<br><img src="https://raw.github.com/fengmk2/koa-guide/master/onion.png" alt="onion"></p>
+<p>最终我使用了 kcors 来代替 koa-cors，可以看一下同样是 origin 的处理，而 kcors 更符合 koa 运作方式也更科学。kcors 处理 origin 的代码 -&gt; <a href="https://github.com/koajs/cors/blob/master/index.js#L54-L66" target="_blank" rel="external">点我</a>，也就是当 origin 为 false 时，返回 yield next，不进行跨域相关的配置，直接代理到下级中间件。</p>
+<p>这次的坑总结出来还是在这个很多重复轮子的时代，要使用之前还是要确认轮子的质量，看源码既是一个好方法又能学习到相关的东西。其实在挖这个坑的过程中还有跨域请求方法方面的坑，下次再写了，因为<strong>懒</strong>……</p>
+
+    
+	</div>
+	<footer class="entry-footer">
+		<div class="entry-meta-footer">
+			<span class="category">
+				
+			</span>
+			<span class="tags">
+				
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/pit/">pit</a></li></ul>
+
+			</span>
+		</div>
+	</footer>
+	
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/11/19/rererestart/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          叕开始写了。
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+
+
+    </div>
+    <div class="mb-search">
+  <form action="//google.com/search" method="get" accept-charset="utf-8">
+    <input type="search" name="q" results="0" placeholder="Search">
+    <input type="hidden" name="q" value="site:yneear.github.io">
+  </form>
+</div>
+<footer id="footer">
+	<h1 class="footer-blog-title">
+		<a href="/">yneear&#39;s blog</a>
+	</h1>
+	<span class="copyright">
+		&copy; 2017 yneear<br>
+		Modify from <a href="http://sanographix.github.io/tumblr/apollo/" target="_blank">Apollo</a> theme, designed by <a href="http://www.sanographix.net/" target="_blank">SANOGRAPHIX.NET</a><br>
+		Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+	</span>
+</footer>
+    
+
+<script src="//cdn.bootcss.com/jquery/2.0.3/jquery.js"></script>
+
+
+
+<script src="/js/script.js"></script>
+  </div>
+</body>
+</html>
